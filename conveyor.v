@@ -1,0 +1,172 @@
+//传送带指令链
+module conveyor (
+    input wire [87:0] command_in,                   //指令进入端口                    
+    input wire conveyor_stop,                      //流水线暂停势能,拉高暂停
+    input wire clk,                               //时钟信号
+
+    input wire [23:0] stamp_flat,               //8个寄存器章 [a-h]    扁平
+    input wire [7:0] stamp_in,                 //8个寄存器章势能 [a-h]
+
+    input wire [39:0] take_flat,               //写入alu需要取值的位置  扁平
+    input wire [7:0] take_in,                  //写入势能
+
+    output wire [23:0] reg_start_flat,        //可运行指令列表 [a-h]按照顺序输出    扁平 
+    output wire [703:0] reg_out_flat,        //各自输出 [a-h]                      扁平
+
+    output reg conveyor_stop_out,          //流水线暂停输出信号
+
+    input wire jump_start                  //检测跳转势能
+);
+
+    integer i, j, k;                         //定义循环变量
+
+    wire [2:0] stamp [7:0];                   //8个寄存器章 [a-h]    扁平
+    wire [4:0] take [7:0];                    //写入alu需要取值的位置  扁平
+    reg [2:0] reg_start [7:0];                //可运行指令列表 [a-h]按照顺序输出    扁平
+    reg [87:0] reg_out [7:0];                 //各自输出 [a-h]                    扁平
+
+    reg  jump_reg;                            //跳转标记位
+
+    assign stamp[0] = stamp_flat[2:0];            //stamp
+    assign stamp[1] = stamp_flat[5:3];
+    assign stamp[2] = stamp_flat[8:6];
+    assign stamp[3] = stamp_flat[11:9];
+    assign stamp[4] = stamp_flat[14:12];
+    assign stamp[5] = stamp_flat[17:15];
+    assign stamp[6] = stamp_flat[20:18];
+    assign stamp[7] = stamp_flat[23:21];
+
+    assign take[0] = take_flat[4:0];              //take
+    assign take[1] = take_flat[9:5];
+    assign take[2] = take_flat[14:10];
+    assign take[3] = take_flat[19:15];
+    assign take[4] = take_flat[24:20];
+    assign take[5] = take_flat[29:25];
+    assign take[6] = take_flat[34:30];
+    assign take[7] = take_flat[39:35];
+
+    assign reg_start_flat[2:0] = reg_start[0];    //reg_start
+    assign reg_start_flat[5:3] = reg_start[1];
+    assign reg_start_flat[8:6] = reg_start[2];
+    assign reg_start_flat[11:9] = reg_start[3];
+    assign reg_start_flat[14:12] = reg_start[4];
+    assign reg_start_flat[17:15] = reg_start[5];
+    assign reg_start_flat[20:18] = reg_start[6];
+    assign reg_start_flat[23:21] = reg_start[7];
+
+    assign reg_out_flat[87:0] = reg_out[0];       //reg_out
+    assign reg_out_flat[175:88] = reg_out[1];
+    assign reg_out_flat[263:176] = reg_out[2];
+    assign reg_out_flat[351:264] = reg_out[3];
+    assign reg_out_flat[439:352] = reg_out[4];
+    assign reg_out_flat[527:440] = reg_out[5];
+    assign reg_out_flat[615:528] = reg_out[6];
+    assign reg_out_flat[703:616] = reg_out[7];
+
+    always @(posedge clk) begin
+        for (i = 0; i < 8; i = i + 1) begin
+            if (stamp_in[i]) begin           //第i位控制第i个寄存器
+                reg_out[i][2:0] = stamp[i];  //写入stamp某个寄存器的值
+            end
+        end
+
+        for (i = 0; i < 8; i = i + 1) begin
+            if (take_in[i]) begin           //第i位控制第i个寄存器
+                reg_out[i][34:30] = take[i];  //写入take某个寄存器的值
+            end
+        end
+    end
+
+    always @(posedge clk) begin
+        if (!conveyor_stop) begin
+            for (i = 1; i < 8; i = i + 1) begin
+                reg_out[i] <= reg_out[i-1];        //传送带滚动
+            end
+
+            if (jump_start) begin                         //处理跳转
+                reg_out[0] <= {command_in[87:3],3'b111};  // 新指令进入第一级,如果跳转亮了就抛弃掉这一位
+                jump_reg <= 1'b1;                         //标记位加1
+            end
+            else begin
+                if (jump_reg) begin                       //如果标记位是亮的那就继续填1，恢复标记位
+                    reg_out[0] <= {command_in[87:3],3'b111};
+                    jump_reg <= 1'b0;
+                end
+                else begin
+                    reg_out[0] <= command_in;             //一切正常再去填正常的
+                end
+                
+            end
+
+
+        end
+    end
+
+    always @(*) begin
+
+        for (k = 0; k < 8; k = k + 1) begin                       
+            if (reg_out[k][2] == 1'b0) begin                             //自身未完成执行的检查后面有无未完成访存和写回的逻辑
+                reg_start[k][2] = 1'b0;                   
+                for (j = k + 1; j < 8; j = j + 1) begin  //j为被查依赖的指令的之前的指令列表，k为查依赖的指令
+                    if (
+                     (reg_out[j][0] == 1'b0) &&                                                            //检测是否为需要检测依赖的东西
+                     ((reg_out[k][81:77] == reg_out[j][71:67]) || (reg_out[k][76:72] == reg_out[j][71:67])) //检测后面是否有依赖*
+                     ) begin                                                         
+
+                         reg_start[k][2] = 0;      //如果发现是访存或者是写回的逻辑没有被执行完，且发现了依赖项则输入0就是需要等待暂时不能执行
+                         break;                    //执行成功后直接退
+                    end 
+                    else begin
+                        reg_start[k][2] = 1;  
+                    end
+               end
+            end 
+            else begin
+                if (reg_out[k][1] == 1'b0) begin         //访存的依赖项检测，主要检测前面有没有未完成的执行以及未完成的写回防止把他们覆盖掉或者取错值
+                reg_start[k][1] = 1'b0;              
+                for (j = k + 1; j < 8; j = j + 1) begin
+                    if (
+                        ((reg_out[j][2] == 1'b0) || (reg_out[j][0] == 1'b0) || (reg_out[j][1] == 1'b0)) &&          //当前两个阶段中有1个未完成就检测下面的内容如果下面的内容找到了依赖项就输出0否则就是1可运行
+                        ((reg_out[k][81:77] == reg_out[j][71:67]) || (reg_out[k][76:72] == reg_out[j][71:67]) || (reg_out[j][81:77] == reg_out[k][71:67]) || (reg_out[j][76:72] == reg_out[k][71:67]))
+                    ) begin
+                        reg_start[k][1] = 0;     
+                        break;                    //执行成功后直接退
+                    end 
+                    else begin
+                        reg_start[k][1] = 1; 
+                     end
+                end
+                end 
+                else begin
+                    if (reg_out[k][0] == 1'b0) begin                                            //写回的依赖查询
+                        reg_start[k][0] = 1'b0;
+                        for (j = k + 1; j < 8; j = j + 1) begin
+                            if (
+                                ((reg_out[j][0] == 1'b0) || (reg_out[j][1] == 1'b0) || (reg_out[j][2] == 1'b0)) &&          
+                                ((reg_out[k][71:67] == reg_out[j][71:67]) || (reg_out[j][81:77] == reg_out[k][71:67]) || (reg_out[j][76:72] == reg_out[k][71:67]))
+                            ) begin
+                                reg_start[k][0] = 0;
+                                break;
+                            end 
+                            else begin
+                                reg_start[k][0] = 1;
+                            end
+                        end
+                    end 
+                    else begin
+                        reg_start[k][2:0] = 3'b000;                                             //如果三个章都被扣完了就输出3个0即都不能工作
+                    end
+                end
+            end 
+                
+            end
+
+            if (!(reg_out[7][2:0] == 3'b111)) begin             //如果最后一个寄存器后三位章不等于111即全执行完毕就暂停流水线
+                conveyor_stop_out = 1'b1;                      //暂停
+            end
+            else begin
+                conveyor_stop_out = 1'b0;                     //继续运动
+            end
+        end
+
+endmodule
