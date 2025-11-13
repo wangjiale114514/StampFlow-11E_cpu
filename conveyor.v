@@ -7,7 +7,7 @@ module conveyor (
     input wire [23:0] stamp_flat,               //8个寄存器章 [a-h]    扁平
     input wire [7:0] stamp_in,                 //8个寄存器章势能 [a-h]
 
-    input wire [39:0] take_flat,               //写入alu需要取值的位置  扁平
+    input wire [39:0] take_flat,               //写入执行器需要取值的位置  扁平
     input wire [7:0] take_in,                  //写入势能
 
     output wire [23:0] reg_start_flat,        //可运行指令列表 [a-h]按照顺序输出    扁平 
@@ -103,10 +103,10 @@ module conveyor (
     end
 
     always @(*) begin
-
         for (k = 0; k < 8; k = k + 1) begin                       
             if (reg_out[k][2] == 1'b0) begin                             //自身未完成执行的检查后面有无未完成访存和写回的逻辑
-                reg_start[k][2] = 1'b0;                   
+                reg_start[k][2] = 1'b0;
+                begin : conveyor_a              //这种语句是为了终止循环     
                 for (j = k + 1; j < 8; j = j + 1) begin  //j为被查依赖的指令的之前的指令列表，k为查依赖的指令
                     if (
                      (reg_out[j][0] == 1'b0) &&                                                            //检测是否为需要检测依赖的东西
@@ -114,43 +114,48 @@ module conveyor (
                      ) begin                                                         
 
                          reg_start[k][2] = 0;      //如果发现是访存或者是写回的逻辑没有被执行完，且发现了依赖项则输入0就是需要等待暂时不能执行
-                         break;                    //执行成功后直接退
+                         disable conveyor_a;                    //执行成功后直接退
                     end 
                     else begin
                         reg_start[k][2] = 1;  
                     end
                end
+               end
             end 
             else begin
                 if (reg_out[k][1] == 1'b0) begin         //访存的依赖项检测，主要检测前面有没有未完成的执行以及未完成的写回防止把他们覆盖掉或者取错值
-                reg_start[k][1] = 1'b0;              
+                reg_start[k][1] = 1'b0; 
+                begin : conveyor_b             
                 for (j = k + 1; j < 8; j = j + 1) begin
                     if (
                         ((reg_out[j][2] == 1'b0) || (reg_out[j][0] == 1'b0) || (reg_out[j][1] == 1'b0)) &&          //当前两个阶段中有1个未完成就检测下面的内容如果下面的内容找到了依赖项就输出0否则就是1可运行
                         ((reg_out[k][81:77] == reg_out[j][71:67]) || (reg_out[k][76:72] == reg_out[j][71:67]) || (reg_out[j][81:77] == reg_out[k][71:67]) || (reg_out[j][76:72] == reg_out[k][71:67]))
                     ) begin
                         reg_start[k][1] = 0;     
-                        break;                    //执行成功后直接退
+                        disable conveyor_b;                    //执行成功后直接退
                     end 
                     else begin
                         reg_start[k][1] = 1; 
                      end
                 end
+                end
                 end 
                 else begin
                     if (reg_out[k][0] == 1'b0) begin                                            //写回的依赖查询
                         reg_start[k][0] = 1'b0;
+                        begin : conveyor_c
                         for (j = k + 1; j < 8; j = j + 1) begin
                             if (
                                 ((reg_out[j][0] == 1'b0) || (reg_out[j][1] == 1'b0) || (reg_out[j][2] == 1'b0)) &&          
                                 ((reg_out[k][71:67] == reg_out[j][71:67]) || (reg_out[j][81:77] == reg_out[k][71:67]) || (reg_out[j][76:72] == reg_out[k][71:67]))
                             ) begin
                                 reg_start[k][0] = 0;
-                                break;
+                                disable conveyor_c;
                             end 
                             else begin
                                 reg_start[k][0] = 1;
                             end
+                        end
                         end
                     end 
                     else begin

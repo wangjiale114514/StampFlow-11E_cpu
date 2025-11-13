@@ -136,6 +136,7 @@ module jump (
         jump_start = 1'b0;
         reg_in5_start = 1'b0;         //寄存器写入势能清零
 
+        begin : jump_ex
         for (i = 7; i > -1; i = i - 1) begin    //从后往前，老人优先原则
             if (reg_start[i] == 3'b100) begin   //判断是不是在执行阶段且要确保分支和跳转指令刚进入就必须秒掉如果有依赖就触发流水线停顿**************************************************
                 case (reg_out[i][87:82])        //根据命令判断
@@ -159,7 +160,7 @@ module jump (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable jump_ex;                                 //退出循环下一个周期再处理
                    end
 
                    6'b001111 : begin                   //001111 BNE  rs, rt, offset  //不等分支
@@ -181,7 +182,7 @@ module jump (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable jump_ex;                                 //退出循环下一个周期再处理
                    end
 
                    6'b010000 : begin                   //010000 BLEZ rs, offset      //小于等于零分支
@@ -203,7 +204,7 @@ module jump (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable jump_ex;                                 //退出循环下一个周期再处理
                    end
 
                    6'b010001 : begin                   //010001 BGTZ rs, offset      //大于零分支
@@ -225,7 +226,7 @@ module jump (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable jump_ex;                                 //退出循环下一个周期再处理
                    end
 
                    6'b010010 : begin                   //010010 J    rs              //直接跳转
@@ -240,7 +241,7 @@ module jump (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable jump_ex;                                 //退出循环下一个周期再处理
                    end
 
                    6'b010011: begin                          //010011 JAL  rs ,rd        //跳转并链接
@@ -261,12 +262,14 @@ module jump (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable jump_ex;                                 //退出循环下一个周期再处理
                     end
                 endcase
             end
         end
+        end
 
+        begin : jump_wb
         for (i = 7; i > -1; i = i - 1) begin     //老人优先
         if ((reg_start[i] == 3'b001) && (reg_out[i][87:82] == 6'b010011)) begin
             reg_search_in5 = reg_out[i][71:67];           //输入寻址
@@ -276,8 +279,9 @@ module jump (
             stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
             stamp[i][0] = 1'b1;                        //表示已经执行了
             stamp_in [i] = 1'b1;                       //点一下势能
-            break;                                     //退出循环下一个周期再处理
+            disable jump_wb;                                     //退出循环下一个周期再处理
             end
+        end
         end
     end
 

@@ -3,7 +3,7 @@
 module reg_file (
     input wire clk,    //时钟
 
-    input wire [31:0] reg_in1,          //寄存器写入内容
+//    input wire [31:0] reg_in1,          //寄存器写入内容
     input wire [31:0] reg_in2,         //mov
     input wire [31:0] reg_in3,        //alu_a
                                      //alu_b
@@ -15,7 +15,7 @@ module reg_file (
     input wire [31:0] reg_in10,    //imm_a
                                    //imm_b
                                      
-    input wire [4:0] reg_search_in1,     //寄存器写入寻址
+//    input wire [4:0] reg_search_in1,     //寄存器写入寻址
     input wire [4:0] reg_search_in2,    //mov
     input wire [4:0] reg_search_in3,   //alu_a
                                       //alu_b
@@ -27,7 +27,7 @@ module reg_file (
     input wire [4:0] reg_search_in10,//imm_a
                                      //imm_b
 
-    input wire reg_in1_start,             //写入势能
+//    input wire reg_in1_start,             //写入势能
     input wire reg_in2_start,            //mov
     input wire reg_in3_start,           //alu_a
                                        //alu_b
@@ -67,9 +67,9 @@ module reg_file (
     reg [31:0] reg_array [0:31];      //寄存器堆
 
     always @(posedge clk) begin    //输入赋值逻辑
-        if (reg_in1_start) begin
-            reg_array[reg_search_in1] <= reg_in1;
-        end
+//      if (reg_in1_start) begin
+//          reg_array[reg_search_in1] <= reg_in1;
+//      end
 
         if (reg_in2_start) begin
             reg_array[reg_search_in2] <= reg_in2;
@@ -99,13 +99,13 @@ module reg_file (
             reg_array[reg_search_in8] <= reg_in8;
         end
 
-      if (reg_in9_start) begin
-          reg_array[reg_search_in9] <= reg_in9;
-      end
-
-        if (reg_in10_start) begin
-            reg_array[reg_search_in9] <= reg_in10;
-        end
+//      if (reg_in9_start) begin
+//          reg_array[reg_search_in9] <= reg_in9;
+//      end
+//
+//        if (reg_in10_start) begin
+//            reg_array[reg_search_in9] <= reg_in10;
+//        end
 
 //      if (reg_in11_start) begin
 //          reg_array[reg_search_in11] <= reg_in11;

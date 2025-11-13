@@ -81,7 +81,8 @@ module mov (
         take_in = 8'b00000000;
         stamp_in = 8'b00000000;
         reg_in2_start = 1'b0;         //寄存器写入势能清零
-
+        
+        begin : mov_ex
         for (i = 7; i > -1; i = i - 1) begin         //寻找最前端的命令遵循老人优先原则
             if ((reg_start[i] == 3'b100) && (reg_out[i][87:82] == 6'b101010)) begin        //符合的mov指令
                 reg_search_out2 = reg_out[i][81:77];
@@ -94,7 +95,7 @@ module mov (
                 stamp[i][2] = 1'b1;                      //表示已经执行了
                 stamp_in [i] = 1'b1;                    //点一下势能
 
-                break;                                 //退出循环下一个周期再处理
+                disable mov_ex;                       //退出循环下一个周期再处理
             end
             else begin
                 if ((reg_start[i] == 3'b100) && (reg_out[i][87:82] == 6'b101100)) begin    ////101100 NOT rs rd      //取反
@@ -108,11 +109,13 @@ module mov (
                     stamp[i][2] = 1'b1;                      //表示已经执行了
                     stamp_in [i] = 1'b1;                    //点一下势能
 
-                    break;                                 //退出循环下一个周期再处理
+                    disable mov_ex;                                 //退出循环下一个周期再处理
                 end
             end
         end
+        end
 
+        begin : mov_wb
         for (i = 7; i > -1; i = i - 1) begin
         if ((reg_start[i] == 3'b001) && (reg_out[i][87:82] == 6'b101010)) begin    //101010 MOV rs rd           //移动
             reg_search_in2 = reg_out[i][71:67];        //输入寻址
@@ -123,7 +126,7 @@ module mov (
             stamp[i][0] = 1'b1;                        //表示已经执行了
             stamp_in [i] = 1'b1;                       //点一下势能
 
-            break;                                     //退出循环下一个周期再处理
+            disable mov_wb;                                     //退出循环下一个周期再处理
         end
         else begin
             if ((reg_start[i] == 3'b001) && (reg_out[i][87:82] == 6'b001001)) begin    //001001 LUI  rt, imm        //加载高位立即数
@@ -135,7 +138,7 @@ module mov (
                 stamp[i][0] = 1'b1;                        //表示已经执行了
                 stamp_in [i] = 1'b1;                       //点一下势能
 
-                break;                                     //退出循环下一个周期再处理
+                disable mov_wb;                                    //退出循环下一个周期再处理
             end
             else begin
                 if ((reg_start[i] == 3'b001) && (reg_out[i][87:82] == 6'b101100)) begin    //101100 NOT rs rd           //取反
@@ -147,9 +150,10 @@ module mov (
                     stamp[i][0] = 1'b1;                        //表示已经执行了
                     stamp_in [i] = 1'b1;                       //点一下势能
 
-                    break;                                     //退出循环下一个周期再处理
+                    disable mov_wb;                                     //退出循环下一个周期再处理
                 end
             end
+        end
         end
     end
     end

@@ -81,6 +81,11 @@ module fpu (
     assign reg_out[7] = reg_out_flat[703:616];
 
     //实例化浮点数运算库
+    wire [3:0] op;
+    wire [31:0] a;
+    wire [31:0] b;
+    wire [31:0] c;
+    
     float u_float (
         .o(op),    //操作码
         .a(a),     //操作数a
@@ -118,6 +123,7 @@ module fpu (
         stamp_in = 8'b00000000;   //stamp复位
         reg_in8_start = 1'b0;     //寄存器写入势能清零
 
+        begin : fpu_ex
         for (i = 7; i > -1; i = i - 1) begin    //寻找最前端的命令遵循老人优先原则
             if (reg_start[i] == 3'b100) begin
                 case (reg_out[i][87:82])
@@ -142,7 +148,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b100001: begin                    //100001 FSUB rs, rt, rd         //减法
@@ -165,7 +171,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b100010: begin                    //100010 FMULT rs,rt, rd         //乘法
@@ -188,7 +194,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b100011: begin                    //100011 FDIV rs, rt, rd         //除法
@@ -211,7 +217,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
                     
                     6'b100100: begin                    //100100 FUCK rs，rt, rd         //比较>
@@ -234,7 +240,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b100101: begin                    //100101 FKCU rs, rt, rd         //比较<（比较结果会存到rd寄存器(全部为1，否则为0)
@@ -257,7 +263,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b100110: begin                    //100110 FKCK rs, rt, sa         //比较=
@@ -280,7 +286,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b100111: begin                    //100111 FKNK rs, rt, sa         //比较不等于
@@ -303,7 +309,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b101000: begin                    //101000 FAND rs, rt, rd         //平方运算
@@ -326,7 +332,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b101110: begin                    //101110 FTI rs rd               //浮点数转整数
@@ -349,7 +355,7 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b101111: begin                    //101111 ITF rs rd               //整数转浮点数
@@ -372,12 +378,14 @@ module fpu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable fpu_ex;                                 //退出循环下一个周期再处理
                     end
                 endcase
             end
         end
-
+        end
+        
+        begin : fpu_wb
         for (i = 7; i > -1; i = i - 1) begin    //老人优先原则
             if (reg_start[i] == 3'b001) begin
                 case (reg_out[i][87:82])        //查看具体情况
@@ -390,7 +398,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100001: begin    //100001 FSUB rs, rt, rd      //减法
@@ -401,7 +409,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100010: begin //100010 FMULT rs,rt, rd         //乘法
@@ -412,7 +420,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100011: begin //100011 FDIV rs, rt, rd         //除法
@@ -423,7 +431,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100100: begin //100100 FUCK rs，rt, rd         //比较>
@@ -434,7 +442,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100101: begin //100101 FKCU rs, rt, rd         //比较<（比较结果会存到rd寄存器(全部为1，否则为0)
@@ -445,7 +453,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100110: begin //100110 FKCK rs, rt, sa         //比较=
@@ -456,7 +464,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b100111: begin //100111 FKNK rs, rt, sa         //比较不等于
@@ -467,7 +475,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b101000: begin //101000 FAND rs, rt, rd         //平方运算
@@ -478,7 +486,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b101110: begin //101110 FTI rs rd               //浮点数转整数
@@ -489,7 +497,7 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b101111: begin //101111 ITF rs rd               //整数转浮点数
@@ -500,10 +508,11 @@ module fpu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable fpu_wb;                                     //退出循环下一个周期再处理
                     end
                 endcase
             end
+        end
         end
         
     end

@@ -97,6 +97,7 @@ module alu (
         stamp_in = 8'b00000000;
         reg_in3_start = 1'b0;         //寄存器写入势能清零
 
+        begin : alu_ex        //处理退出循环
         for (i = 7; i > -1; i = i - 1) begin    //寻找最前端的命令遵循老人优先原则
             if (reg_start[i] == 3'b100) begin
                 case (reg_out[i][87:82])
@@ -118,7 +119,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                              //退出循环下一个周期再处理
                     end
 
                     6'b000001: begin                          //000001 SUB rs, rt, rd    //减法
@@ -137,7 +138,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
                     
                     6'b000010: begin                          //000010 AND rd, rs, rt    //按位与运算
@@ -156,7 +157,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b000011: begin                          //000011 R  rd, rs, rt     //按位或运算
@@ -175,7 +176,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b000100: begin                          //000100 XOR rd, rs, rt    //按位异或运算
@@ -194,7 +195,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b000101: begin                          //000101 SLT rd, rs, rt    //小于置位
@@ -218,7 +219,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     //2.立即数指令
@@ -237,7 +238,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b000111: begin                        //000111 ANDI rt, rs, imm    //立即数与
@@ -255,7 +256,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b001000: begin                        //001000 ORI  rt, rs, imm    //立即数或
@@ -273,7 +274,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     //6. 移位指令
@@ -293,7 +294,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b010111: begin                       //010111 SRL  rd, rt, sa      //逻辑右移
@@ -312,7 +313,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b011000: begin                       //011000 SRA  rd, rt, sa      //算术右移
@@ -331,7 +332,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b011001: begin                       //011001 CNM  rd, rt, sa      //算数左移
@@ -350,7 +351,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     //8. 乘除指令
@@ -370,7 +371,7 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                     6'b011111: begin                   //011111 DIV  rs, rt, rd          //除法
@@ -389,13 +390,15 @@ module alu (
                         stamp[i][2] = 1'b1;                      //表示已经执行了
                         stamp_in [i] = 1'b1;                    //点一下势能
 
-                        break;                                 //退出循环下一个周期再处理
+                        disable alu_ex;                                 //退出循环下一个周期再处理
                     end
 
                 endcase
             end
         end
+        end
 
+        begin : alu_wb                         //alu写回断句处理块
         for (i = 7; i > -1; i = i - 1) begin    //老人优先
             if (reg_start[i] == 3'b001) begin
                 case (reg_out[i][87:82])        //查看具体情况
@@ -408,7 +411,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b000001: begin    //000001 SUB rs, rt, rd       //减法
@@ -419,7 +422,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b000010: begin    //000010 AND rd, rs, rt       //按位与运算
@@ -430,7 +433,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b000011: begin    //000011 R  rd, rs, rt        //按位或运算*
@@ -441,7 +444,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b000100: begin    //000100 XOR rd, rs, rt       //按位异或运算
@@ -452,7 +455,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b000101: begin    //000101 SLT rd, rs, rt       //小于置位*
@@ -463,7 +466,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     //2.立即数命令
@@ -475,7 +478,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b000111: begin    //000111 ANDI rt, rs, imm     //立即数与
@@ -486,7 +489,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b001000: begin    //001000 ORI  rt, rs, imm     //立即数或
@@ -497,7 +500,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     //6.移位指令
@@ -509,7 +512,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b010111: begin    //010111 SRL  rd, rt, sa      //逻辑右移
@@ -520,7 +523,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b011000: begin    //011000 SRA  rd, rt, sa      //算术右移
@@ -531,7 +534,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b011001: begin    //011001 CNM  rd, rt, sa      //算数左移
@@ -542,7 +545,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     //8.乘法命令
@@ -554,7 +557,7 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end
 
                     6'b011111: begin    //011111 DIV  rs, rt, rd      //除法
@@ -565,10 +568,11 @@ module alu (
                         stamp[i][2:1] = reg_out[i][2:1];           //前两位章不变
                         stamp[i][0] = 1'b1;                        //表示已经执行了
                         stamp_in [i] = 1'b1;                       //点一下势能
-                        break;                                     //退出循环下一个周期再处理
+                        disable alu_wb;                                     //退出循环下一个周期再处理
                     end 
                 endcase
             end
+        end
         end
     end
 

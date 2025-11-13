@@ -435,7 +435,7 @@ module float (
                (o == 4'b0110)? FUCK_c:
                (o == 4'b0111)? FKCU_c:
                (o == 4'b1000)? FKNK_c:
-               (o == 4'b1001)? FKCK_c:32'b0
+               (o == 4'b1001)? FKCK_c:32'b0;
 
 
 //0001加法

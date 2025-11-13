@@ -9,7 +9,7 @@ module imm (
     output reg [7:0] stamp_in,                 //盖章势能
 
     output wire [39:0] take_flat,                //写入alu需要取值的位置  扁平
-    output reg [7:0] take_in,                  //写入势能
+    output wire [7:0] take_in,                  //写入势能    //永远不用
 
     //A位 (rs)
     output reg [4:0] reg_search_out10,        //A位_读取寄存器内容寻址
@@ -83,9 +83,9 @@ module imm (
 
     always @(*) begin        //访存的处理逻辑
         stamp_in = 8'b00000000;
-        reg_in3_start = 1'b0;
+        reg_in10_start = 1'b0;
         addr_b_start = 1'b0;
-
+        begin : imm
         for (i = 7; i > -1; i = i - 1) begin                                        
             if ((reg_out[i][87:82] == 001100) && (reg_start[i] == 3'b010)) begin    //001100 LB   rs rd  // 加载字节*    rs为要要加载哪个地址的东西，rd是加载到寄存器什么地方
                 reg_search_out10 = reg_out[i][81:77];      //寻找寄存器地址
@@ -100,7 +100,7 @@ module imm (
                 stamp[i][0] = reg_out[i][0];             
                 stamp_in[i] = 1'b1;                        //势能
 
-                break;
+                disable imm;
             end
 
             if ((reg_out[i][87:82] == 001101) && (reg_start[i] == 3'b010)) begin    //001101 SB   rs rd  // 存储字节*    rs是存储到哪个地址，rd是存储的东西
@@ -116,8 +116,9 @@ module imm (
                 stamp[i][0] = reg_out[i][0];             
                 stamp_in[i] = 1'b1;                        //势能
 
-                break;
+                disable imm;
             end
+        end
         end
     end
 endmodule

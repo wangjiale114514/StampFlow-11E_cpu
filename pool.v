@@ -44,7 +44,7 @@ module pool (
     output reg [7:0] conveyor_stamp_in,                 //8个寄存器章势能 [a-h]
 
     output wire [39:0] conveyor_take_flat,               //写入alu需要取值的位置  扁平
-    output reg [7:0] conveyor_take_in,                  //写入势能
+    output reg [7:0] conveyor_take_in                    //写入势能
 );
     
     //alu
