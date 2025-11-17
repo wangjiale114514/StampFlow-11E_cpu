@@ -226,7 +226,7 @@ module if_id (
                 command_next[87:82] <= 6'b010011;             // 操作码
                 command_next[81:77] <= command[25:21];       // rs
                 command_next[76:72] <= 5'b0;                // rt  
-                command_next[71:67] <= command[71:67];     // rd
+                command_next[71:67] <= command[15:11];     // rd
                 command_next[66:35] <= 32'b0;             // 立即数
                 command_next[34:3]  <= 32'b0;            // 访存地址
                 command_next[2:0]   <= 3'b010;          // 章
@@ -462,5 +462,6 @@ module if_id (
             end
         endcase
     end
+
 
 endmodule 
