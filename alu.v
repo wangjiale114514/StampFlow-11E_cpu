@@ -9,6 +9,7 @@
 
 module alu (
     input wire clk,                                   //时钟信号
+    input wire reset,                                 //复位
 
     input wire [23:0] reg_start_flat,              //可运行指令列表  扁平
     input wire [703:0] reg_out_flat,              //指令列表  扁平
@@ -24,13 +25,13 @@ module alu (
     input wire [31:0] reg_out3,             //A位_读取寄存器堆的输出内容
 
     //(rd)
-    output reg [4:0] reg_search_in3,      //A位_写入寻址
+    output reg [4:0] reg_search_in3,     //A位_写入寻址
     output reg [31:0] reg_in3,           //A位_写入内容
     output reg reg_in3_start,            //A位_写入势能 
 
     //B位(只需要输出) (rt)
     output reg [4:0] reg_search_out4,        //A位_读取寄存器内容寻址
-    input wire [31:0] reg_out4             //A位_读取寄存器堆的输出内容
+    input wire [31:0] reg_out4              //A位_读取寄存器堆的输出内容
 
 );  
 
@@ -93,6 +94,21 @@ module alu (
     end
 
     always @(*) begin    //执行的处理逻辑
+        if (reset) begin                            //处理复位
+            for (i = 7; i > -1; i = i - 1) begin
+                stamp[i] <= 3'b0;
+                take[i] <= 5'b0;
+            end
+            reg_search_out3 <= 5'b0;
+            reg_search_in3 <= 5'b0;
+            reg_in3 <= 32'b0;
+            reg_in3_start <= 1'b0;
+            reg_search_out4 <= 5'b0;
+            take_in <= 8'b0;
+            stamp_in <= 8'b0;
+            next_pc <= 5'b0;
+        end
+
         take_in = 8'b00000000;
         stamp_in = 8'b00000000;
         reg_in3_start = 1'b0;         //寄存器写入势能清零

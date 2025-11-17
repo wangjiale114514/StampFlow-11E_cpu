@@ -1,6 +1,7 @@
 //访存操作
 module imm (
     input wire clk,                                   //时钟信号
+    input wire reset,                                 //复位
 
     input wire [23:0] reg_start_flat,              //可运行指令列表  扁平
     input wire [703:0] reg_out_flat,              //指令列表  扁平
@@ -82,6 +83,23 @@ module imm (
     assign reg_out[7] = reg_out_flat[703:616];
 
     always @(*) begin        //访存的处理逻辑
+
+        if (reset) begin                            //处理复位
+            for (i = 7; i > -1; i = i - 1) begin
+                stamp[i] <= 3'b0;
+                take[i] <= 5'b0;
+            end
+            reg_search_out10 <= 5'b0;
+            reg_search_in10 <= 5'b0;
+            reg_in10 <= 32'b0;
+            reg_in10_start <= 1'b0;
+            reg_search_out11 <= 5'b0;
+            addr_b <= 32'b0;
+            addr_b_start <= 4'b0;
+            addr_b_write <= 32'b0;
+            stamp_in <= 8'b0;
+        end
+
         stamp_in = 8'b00000000;
         reg_in10_start = 1'b0;
         addr_b_start = 1'b0;

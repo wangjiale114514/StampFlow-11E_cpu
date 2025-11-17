@@ -4,6 +4,8 @@
 module pool (
     //输入
     //alu
+    input wire reset,                                 //复位
+
     input wire [23:0] alu_stamp_flat,               //需要盖的章  扁平
     input wire [7:0] alu_stamp_in,                 //盖章势能
 
@@ -190,6 +192,16 @@ module pool (
 
     //仲裁得信号
     always @(*) begin
+        if (reset) begin           //复位
+            for (i = 7; i > -1; i = i - 1) begin
+                conveyor_stamp[i] <= 3'b0; 
+                conveyor_take[i] <= 5'b0;
+            end
+
+            conveyor_stamp_in <= 8'b0;
+            conveyor_take_in <= 8'b0;
+        end
+
         conveyor_take_in = 8'b00000000;        //初始化conveyor信号
         conveyor_stamp_in = 8'b00000000;
 

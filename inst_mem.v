@@ -15,8 +15,7 @@ module inst_mem (
     reg [7:0] mem [0:1023];
 
 initial begin        //初始化
-    {mem[3], mem[2], mem[1], mem[0]} = 32'h00000013;  // nop
-    {mem[7], mem[6], mem[5], mem[4]} = 32'h00400093;  // addi x1, x0, 4
+    {mem[3], mem[2], mem[1], mem[0]} = 32'b00100111010111101111101111001111;  // nop
 end
 
     always @(*) begin

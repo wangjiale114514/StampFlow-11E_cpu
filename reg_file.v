@@ -2,6 +2,7 @@
 
 module reg_file (
     input wire clk,    //时钟
+    input wire reset,  //复位
 
 //    input wire [31:0] reg_in1,          //寄存器写入内容
     input wire [31:0] reg_in2,         //mov
@@ -61,10 +62,18 @@ module reg_file (
     output reg [31:0] reg_out8,       //fpu_a
     output reg [31:0] reg_out9,       //fpu_b
     output reg [31:0] reg_out10,       //imm_a
-    output reg [31:0] reg_out11        //imm_b
+    output reg [31:0] reg_out11,        //imm_b
+
+    //测试输出
+    output wire [31:0] ceshi_out
 
 );
+
+    integer i;                        //循环变量
     reg [31:0] reg_array [0:31];      //寄存器堆
+
+    //测试赋值
+    assign ceshi_out = reg_array[26];
 
     always @(posedge clk) begin    //输入赋值逻辑
 //      if (reg_in1_start) begin
@@ -114,6 +123,25 @@ module reg_file (
     end
 
     always @(*) begin    //输出赋值逻辑
+
+        if (reset) begin    //复位
+            reg_out1 <= 32'b0;
+            reg_out2 <= 32'b0;
+            reg_out3 <= 32'b0;
+            reg_out4 <= 32'b0;
+            reg_out5 <= 32'b0;
+            reg_out6 <= 32'b0;
+            reg_out7 <= 32'b0;
+            reg_out8 <= 32'b0;
+            reg_out9 <= 32'b0;
+            reg_out10 <= 32'b0;
+            reg_out11 <= 32'b0;
+
+            for (i = 0; i < 33; i = i + 1) begin
+                reg_array[i] <= 32'b0;
+            end
+        end
+
         reg_out1 <= reg_array[reg_search_out1];
         reg_out2 <= reg_array[reg_search_out2];
         reg_out3 <= reg_array[reg_search_out3];

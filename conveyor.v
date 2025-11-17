@@ -15,7 +15,9 @@ module conveyor (
 
     output reg conveyor_stop_out,          //流水线暂停输出信号
 
-    input wire jump_start                  //检测跳转势能
+    input wire jump_start,                  //检测跳转势能
+
+    input wire reset                        //复位
 );
 
     integer i, j, k;                         //定义循环变量
@@ -63,21 +65,14 @@ module conveyor (
     assign reg_out_flat[615:528] = reg_out[6];
     assign reg_out_flat[703:616] = reg_out[7];
 
-    always @(posedge clk) begin
-        for (i = 0; i < 8; i = i + 1) begin
-            if (stamp_in[i]) begin           //第i位控制第i个寄存器
-                reg_out[i][2:0] = stamp[i];  //写入stamp某个寄存器的值
+    always @(posedge clk or posedge reset) begin    //添加复位按钮
+        if (reset) begin                            //检测复位
+            for (i = 0; i < 8; i = i + 1) begin   
+                reg_out[i] <= {85'b0, 3'b111};
             end
+            jump_reg <= 1'b0;
         end
-
-        for (i = 0; i < 8; i = i + 1) begin
-            if (take_in[i]) begin           //第i位控制第i个寄存器
-                reg_out[i][34:30] = take[i];  //写入take某个寄存器的值
-            end
-        end
-    end
-
-    always @(posedge clk) begin
+        else begin
         if (!conveyor_stop) begin
             for (i = 1; i < 8; i = i + 1) begin
                 reg_out[i] <= reg_out[i-1];        //传送带滚动
@@ -98,8 +93,19 @@ module conveyor (
                 
             end
 
-
         end
+
+        for (i = 0; i < 8; i = i + 1) begin
+            if (stamp_in[i]) begin            //控制章写入的逻辑
+                reg_out[i + 1][2:0] <= stamp[i];   //写入stamp某个寄存器的值
+            end
+
+            if (take_in[i]) begin
+                reg_out[i + 1][34:30] <= take[i];  //写入take某个寄存器的值
+            end
+        end
+        end
+
     end
 
     always @(*) begin

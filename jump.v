@@ -16,6 +16,7 @@
 
 module jump (
     input wire clk,                                   //时钟信号
+    input wire reset,                                 //复位
 
     input wire [23:0] reg_start_flat,              //可运行指令列表  扁平
     input wire [703:0] reg_out_flat,              //指令列表  扁平
@@ -46,7 +47,9 @@ module jump (
     //流水线控制执行引脚
     output reg stop,                           //流水线暂停势能
     output reg jump_start,                     //跳转势能
-    output reg [31:0] pc_jump                  //跳转偏移量
+    output reg [31:0] pc_jump,                 //跳转偏移量
+
+    input wire [31:0] pc_out                   //pc的输出
 );
 
     reg [4:0] next_pc;              //循环pc
@@ -131,6 +134,23 @@ module jump (
     end
 
     always @(*) begin              //处理命令的执行阶段
+
+        if (reset) begin                        //处理复位
+            for (i = 7; i > -1; i = i - 1) begin
+                stamp[i] <= 3'b0;
+                take[i] <= 5'b0;
+            end
+            reg_search_out5 <= 5'b0;
+            reg_search_in5 <= 5'b0;
+            reg_in5 <= 32'b0;
+            reg_in5_start <= 1'b0;
+            reg_search_out6 <= 5'b0;
+            take_in <= 8'b0;
+            stamp_in <= 8'b0;
+            reg_search_out7 <= 5'b0;
+            next_pc <= 5'b0;
+        end
+
         take_in = 8'b00000000;     //take势能信号全部归零
         stamp_in = 8'b00000000;    //stamp势能信号全部归零
         jump_start = 1'b0;
@@ -248,9 +268,8 @@ module jump (
                         reg_search_out5 = reg_out[i][81:77];                             //给rs赋值
                         next_data_rs[next_pc] = reg_out5;
 
-                        next_data_rt[next_pc] = 32'b0;                                    //给rt赋值
-
-                        next_data_rd[next_pc] = next_data_rs[next_pc] + next_data_rt[next_pc];    //给rd赋值
+                        //给寄存器赋值链接后的地址//给rd赋值
+                        next_data_rd[next_pc] = pc_out + next_data_rs[next_pc];                                           
 
                         pc_jump = next_data_rs[next_pc];                                 //给pc跳转赋值
                         jump_start = 1'b1;                                               //点一下势能
