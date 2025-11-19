@@ -41,7 +41,11 @@ module top (
     output wire [7:0] conveyor_take_in,
 
     //测试寄存器输出
-    output wire [31:0] ceshi_out
+    output wire [31:0] ceshi_out,
+
+    //alu测试信号
+    output wire [23:0] alu_stamp_flat,
+    output wire [7:0] alu_stamp_in
 );
     // 内部信号定义
     // PC相关信号
@@ -76,8 +80,8 @@ module top (
 //    wire [7:0] conveyor_take_in;
     
     // 各执行单元章和take信号
-    wire [23:0] alu_stamp_flat, fpu_stamp_flat, imm_stamp_flat, jump_stamp_flat, mov_stamp_flat;
-    wire [7:0] alu_stamp_in, fpu_stamp_in, imm_stamp_in, jump_stamp_in, mov_stamp_in;
+    wire [23:0] fpu_stamp_flat, imm_stamp_flat, jump_stamp_flat, mov_stamp_flat;  //alu_stamp_flat, 
+    wire [7:0] fpu_stamp_in, imm_stamp_in, jump_stamp_in, mov_stamp_in;  //alu_stamp_in
     wire [39:0] alu_take_flat, fpu_take_flat, imm_take_flat, jump_take_flat, mov_take_flat;
     wire [7:0] alu_take_in, fpu_take_in, imm_take_in, jump_take_in, mov_take_in;
     

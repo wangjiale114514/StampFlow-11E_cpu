@@ -7,38 +7,21 @@ module reg_file (
 //    input wire [31:0] reg_in1,          //寄存器写入内容
     input wire [31:0] reg_in2,         //mov
     input wire [31:0] reg_in3,        //alu_a
-                                     //alu_b
     input wire [31:0] reg_in5,      //jump_a
-                                   //jump_b
-                                   //jump_c
     input wire [31:0] reg_in8,     //fpu_a
-                                   //fpu_b
     input wire [31:0] reg_in10,    //imm_a
-                                   //imm_b
                                      
-//    input wire [4:0] reg_search_in1,     //寄存器写入寻址
     input wire [4:0] reg_search_in2,    //mov
     input wire [4:0] reg_search_in3,   //alu_a
-                                      //alu_b
     input wire [4:0] reg_search_in5, //jump_a
-                                    //jump_b
-                                    //jump_c
     input wire [4:0] reg_search_in8,//fpu_a
-                                    //fpu_b
     input wire [4:0] reg_search_in10,//imm_a
-                                     //imm_b
 
-//    input wire reg_in1_start,             //写入势能
     input wire reg_in2_start,            //mov
     input wire reg_in3_start,           //alu_a
-                                       //alu_b
     input wire reg_in5_start,         //jump_a
-                                     //jump_b
-                                     //jump_c
     input wire reg_in8_start,        //fpu_a
-                                     //fpu_b
     input wire reg_in10_start,       //imm_a
-                                     //imm_b
 
     input wire [4:0] reg_search_out1,    //寄存器输出寻址
     input wire [4:0] reg_search_out2,   //mov
@@ -76,9 +59,6 @@ module reg_file (
     assign ceshi_out = reg_array[26];
 
     always @(posedge clk) begin    //输入赋值逻辑
-//      if (reg_in1_start) begin
-//          reg_array[reg_search_in1] <= reg_in1;
-//      end
 
         if (reg_in2_start) begin
             reg_array[reg_search_in2] <= reg_in2;
@@ -88,37 +68,17 @@ module reg_file (
             reg_array[reg_search_in3] <= reg_in3;
         end
 
-//      if (reg_in4_start) begin
-//          reg_array[reg_search_in4] <= reg_in4;
-//      end
-
         if (reg_in5_start) begin
             reg_array[reg_search_in5] <= reg_in5;
         end
-
-//      if (reg_in6_start) begin
-//          reg_array[reg_search_in6] <= reg_in6;
-//      end
-
-//      if (reg_in7_start) begin
-//          reg_array[reg_search_in7] <= reg_in7;
-//      end
 
         if (reg_in8_start) begin
             reg_array[reg_search_in8] <= reg_in8;
         end
 
-//      if (reg_in9_start) begin
-//          reg_array[reg_search_in9] <= reg_in9;
-//      end
-//
-//        if (reg_in10_start) begin
-//            reg_array[reg_search_in9] <= reg_in10;
-//        end
-
-//      if (reg_in11_start) begin
-//          reg_array[reg_search_in11] <= reg_in11;
-//      end
+        if (reg_in10_start) begin
+            reg_array[reg_search_in10] <= reg_in10;
+        end
 
     end
 

@@ -32,6 +32,10 @@ module testbench;
 
     //测试寄存器输出
     wire [31:0] ceshi_out;
+
+    //alu输出
+    wire [23:0] alu_stamp_flat;
+    wire [7:0] alu_stamp_in;
     
     // 实例化顶层CPU - 补全所有端口
     top cpu_top_inst(
@@ -69,13 +73,17 @@ module testbench;
         .conveyor_take_flat(conveyor_take_flat),
         .conveyor_take_in(conveyor_take_in),
 
-        .ceshi_out(ceshi_out)    //测试寄存器输出
+        .ceshi_out(ceshi_out),    //测试寄存器输出
+
+        .alu_stamp_flat(alu_stamp_flat),
+        .alu_stamp_in(alu_stamp_in)
+
     );
     
 
     initial begin
         clk = 0;
-        forever #5 clk = ~clk;  //5个时间翻一次
+        forever #10 clk = ~clk;  //5个时间翻一次
     end
     
     // 测试过程 - 调整延时时间

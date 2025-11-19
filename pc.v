@@ -22,7 +22,7 @@ module pc_adder (                           //pc加法器
 
             else begin
                 if (jump_start) begin
-                    next_pc = pc_out + pc_jump;
+                    next_pc = pc_out - 32'b0000000000000000000000000001000 + pc_jump;    //计算跳转，-8还原两个周期前的跳转指令的真实位置
                     pc_out <= next_pc;
                 end
 

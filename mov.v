@@ -22,7 +22,7 @@ module mov (
     output reg reg_in2_start            //写入势能 
 );  
     reg [4:0] next_pc;           //循环pc
-    reg [31:0] next_data [31:0];  //数据存储器
+    reg [31:0] next_data [0:31];  //数据存储器
     integer i;                    //声明循环变量
 
     //扁平信号转换为列表
@@ -74,7 +74,7 @@ module mov (
 
 
     always @(posedge clk) begin
-        next_pc = next_pc + 1;                     //pc+1
+        next_pc <= next_pc + 1;                     //pc+1
     end
 
     
@@ -89,7 +89,6 @@ module mov (
             reg_search_in2 <= 5'b0;
             reg_in2 <= 32'b0;
             reg_in2_start <= 1'b0;
-            reg_search_out2 <= 5'b0;
             take_in <= 8'b0;
             stamp_in <= 8'b0;
             next_pc <= 5'b0;
@@ -110,7 +109,7 @@ module mov (
 
                 stamp[i][1:0] = reg_out[i][1:0];          //后两位章不变
                 stamp[i][2] = 1'b1;                      //表示已经执行了
-                stamp_in [i] = 1'b1;                    //点一下势能
+                stamp_in[i] = 1'b1;                    //点一下势能
 
                 disable mov_ex;                       //退出循环下一个周期再处理
             end
@@ -174,11 +173,6 @@ module mov (
         end
     end
     end
-
-//    always @(*) begin    //处理写回逻辑
-//    stamp_in = 8'b00000000;       //势能清零
-//    reg_in2_start = 1'b0;         //寄存器写入势能清零
-//    end
 endmodule
 
 //001001 LUI  rt, imm        //加载高位立即数**

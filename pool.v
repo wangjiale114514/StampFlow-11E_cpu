@@ -191,74 +191,82 @@ module pool (
     integer i;                      //声明循环变量
 
     //仲裁得信号
-    always @(*) begin
+        always @(*) begin
         if (reset) begin           //复位
             for (i = 7; i > -1; i = i - 1) begin
-                conveyor_stamp[i] <= 3'b0; 
-                conveyor_take[i] <= 5'b0;
+                conveyor_stamp[i] = 3'b0; 
+                conveyor_take[i] = 5'b0;
             end
 
-            conveyor_stamp_in <= 8'b0;
-            conveyor_take_in <= 8'b0;
-        end
+            conveyor_stamp_in = 8'b0;
+            conveyor_take_in = 8'b0;
+        end else begin
+            conveyor_take_in = 8'b00000000;        //初始化conveyor信号
+            conveyor_stamp_in = 8'b00000000;
 
-        conveyor_take_in = 8'b00000000;        //初始化conveyor信号
-        conveyor_stamp_in = 8'b00000000;
+            // 先初始化conveyor_stamp和conveyor_take，然后由各个执行单元驱动
+            for (i = 7; i > -1; i = i - 1) begin
+                conveyor_stamp[i] = 3'b0; 
+                conveyor_take[i] = 5'b0;
+            end
 
-        for (i = 7; i > -1; i = i - 1) begin                    //alu
-            if (alu_stamp_in[i] == 1'b1) begin                  //stamp
-                conveyor_stamp[i] = alu_stamp[i];//赋值
-                conveyor_stamp_in[i] = 1'b1;     //激活势能
-            end
-            if (alu_take_in[i] == 1'b1) begin                   //take
-                conveyor_take[i] = alu_take[i];  //赋值
-                conveyor_take_in[i] = alu_take_in[i];//激活势能
-            end
-        end
+            // 然后按优先级处理各个执行单元的信号
+            // 优先级：ALU < FPU < IMM < JUMP < MOV
 
-        for (i = 7; i > -1; i = i - 1) begin                    //fpu
-            if (fpu_stamp_in[i] == 1'b1) begin                  //stamp
-                conveyor_stamp[i] = fpu_stamp[i];//赋值
-                conveyor_stamp_in[i] = 1'b1;     //激活势能
+            for (i = 7; i > -1; i = i - 1) begin                    //alu
+                if (alu_stamp_in[i] == 1'b1) begin                  //stamp
+                    conveyor_stamp[i] = alu_stamp[i];//赋值
+                    conveyor_stamp_in[i] = 1'b1;     //激活势能
+                end
+                if (alu_take_in[i] == 1'b1) begin                   //take
+                    conveyor_take[i] = alu_take[i];  //赋值
+                    conveyor_take_in[i] = alu_take_in[i];//激活势能
+                end
             end
-            if (fpu_take_in[i] == 1'b1) begin                   //take
-                conveyor_take[i] = fpu_take[i];  //赋值
-                conveyor_take_in[i] = fpu_take_in[i];//激活势能
-            end
-        end
 
-        for (i = 7; i > -1; i = i - 1) begin                    //imm
-            if (imm_stamp_in[i] == 1'b1) begin                  //stamp
-                conveyor_stamp[i] = imm_stamp[i];//赋值
-                conveyor_stamp_in[i] = 1'b1;     //激活势能
+            for (i = 7; i > -1; i = i - 1) begin                    //fpu
+                if (fpu_stamp_in[i] == 1'b1) begin                  //stamp
+                    conveyor_stamp[i] = fpu_stamp[i];//赋值
+                    conveyor_stamp_in[i] = 1'b1;     //激活势能
+                end
+                if (fpu_take_in[i] == 1'b1) begin                   //take
+                    conveyor_take[i] = fpu_take[i];  //赋值
+                    conveyor_take_in[i] = fpu_take_in[i];//激活势能
+                end
             end
-            if (imm_take_in[i] == 1'b1) begin                   //take
-                conveyor_take[i] = imm_take[i];  //赋值
-                conveyor_take_in[i] = imm_take_in[i];//激活势能
-            end
-        end
 
-        for (i = 7; i > -1; i = i - 1) begin                    //jump
-            if (jump_stamp_in[i] == 1'b1) begin                  //stamp
-                conveyor_stamp[i] = jump_stamp[i];//赋值
-                conveyor_stamp_in[i] = 1'b1;     //激活势能
+            for (i = 7; i > -1; i = i - 1) begin                    //imm
+                if (imm_stamp_in[i] == 1'b1) begin                  //stamp
+                    conveyor_stamp[i] = imm_stamp[i];//赋值
+                    conveyor_stamp_in[i] = 1'b1;     //激活势能
+                end
+                if (imm_take_in[i] == 1'b1) begin                   //take
+                    conveyor_take[i] = imm_take[i];  //赋值
+                    conveyor_take_in[i] = imm_take_in[i];//激活势能
+                end
             end
-            if (jump_take_in[i] == 1'b1) begin                   //take
-                conveyor_take[i] = jump_take[i];  //赋值
-                conveyor_take_in[i] = jump_take_in[i];//激活势能
-            end
-        end
 
-        for (i = 7; i > -1; i = i - 1) begin                    //mov
-            if (mov_stamp_in[i] == 1'b1) begin                  //stamp
-                conveyor_stamp[i] = mov_stamp[i];//赋值
-                conveyor_stamp_in[i] = 1'b1;     //激活势能
+            for (i = 7; i > -1; i = i - 1) begin                    //jump
+                if (jump_stamp_in[i] == 1'b1) begin                  //stamp
+                    conveyor_stamp[i] = jump_stamp[i];//赋值
+                    conveyor_stamp_in[i] = 1'b1;     //激活势能
+                end
+                if (jump_take_in[i] == 1'b1) begin                   //take
+                    conveyor_take[i] = jump_take[i];  //赋值
+                    conveyor_take_in[i] = jump_take_in[i];//激活势能
+                end
             end
-            if (jump_take_in[i] == 1'b1) begin                   //take
-                conveyor_take[i] = mov_take[i];  //赋值
-                conveyor_take_in[i] = mov_take_in[i];//激活势能
+
+            for (i = 7; i > -1; i = i - 1) begin                    //mov
+                if (mov_stamp_in[i] == 1'b1) begin                  //stamp
+                    conveyor_stamp[i] = mov_stamp[i];//赋值
+                    conveyor_stamp_in[i] = 1'b1;     //激活势能
+                end
+                if (mov_take_in[i] == 1'b1) begin                   //take
+                    conveyor_take[i] = mov_take[i];  //赋值
+                    conveyor_take_in[i] = mov_take_in[i];//激活势能
+                end
             end
         end
     end
-
 endmodule

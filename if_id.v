@@ -83,8 +83,8 @@ module if_id (
                 command_next[87:82] <= 6'b000110; 
                 command_next[81:77] <= command[25:21];
                 command_next[76:72] <= 5'b0;
-                command_next[71:67] <= command[20:16];
-                command_next[66:35] <= {16'b0,command[15:0]};
+                command_next[71:67] <= command[15:11];
+                command_next[66:35] <= {21'b0,command[10:0]};
                 command_next[34:3]  <= 32'b0;
                 command_next[2:0]   <= 3'b010;
             end
@@ -93,8 +93,8 @@ module if_id (
                 command_next[87:82] <= 6'b000111; 
                 command_next[81:77] <= command[25:21];
                 command_next[76:72] <= 5'b0;
-                command_next[71:67] <= command[20:16];
-                command_next[66:35] <= {16'b0,command[15:0]};
+                command_next[71:67] <= command[15:11];
+                command_next[66:35] <= {21'b0,command[10:0]};
                 command_next[34:3]  <= 32'b0;
                 command_next[2:0]   <= 3'b010;
             end
@@ -103,8 +103,8 @@ module if_id (
                 command_next[87:82] <= 6'b001000; 
                 command_next[81:77] <= command[25:21];
                 command_next[76:72] <= 5'b0;
-                command_next[71:67] <= command[20:16];
-                command_next[66:35] <= {16'b0,command[15:0]};
+                command_next[71:67] <= command[15:11];
+                command_next[66:35] <= {21'b0,command[10:0]};
                 command_next[34:3]  <= 32'b0;
                 command_next[2:0]   <= 3'b010;
             end
@@ -118,33 +118,6 @@ module if_id (
                 command_next[34:3]  <= 32'b0;
                 command_next[2:0]   <= 3'b110;
             end
-
-            //访存指令           --------------------明天要改这个
-//            6'b001010: begin    //001010 W   rs, offset(rt)  // 加载字
-//                command_next[87:82] <= 6'b001010; 
-//                command_next[81:77] <= 5'b0;
-//                command_next[76:72] <= command[25:21];
-//                command_next[71:67] <= command[20:16];
-//                command_next[66:35] <= 32'b0;
-//
-//                id_reg = command[20:16];
-//                command_next[34:3]  <= id_reg_search;   //访存寄存器
-//
-//
-//                command_next[2:0]   <= 3'b001;
-//            end
-
-//            6'b001011: begin    //001011 W   rt, offset(rs)  // 存储字
-//                command_next[87:82] <= 6'b001011; 
-//                command_next[81:77] <= 5'b0;
-//                command_next[76:72] <= command[25:21];
-//                command_next[71:67] <= command[20:16];
-//                command_next[66:35] <= 32'b0;
-//
-//                id_reg = command[20:16];
-//                command_next[34:3]  <= id_reg_search;   //访存寄存器
-//                command_next[2:0]   <= 3'b001;
-//            end
 
             6'b001100: begin    //001100 LB   rt, offset(rs)  // 加载字节
                 command_next[87:82] <= 6'b001100; 
@@ -272,47 +245,6 @@ module if_id (
                 command_next[34:3]  <= 32'b0;            // 访存地址
                 command_next[2:0]   <= 3'b010;          // 章
             end
-
-            //特殊指令
-//            6'b011010: begin     //011010 SYSCALL              // 系统调用*
-//                command_next[87:82] <= 6'b011010;             // 操作码
-//                command_next[81:77] <= 5'b0;                  // rs
-//                command_next[76:72] <= 5'b0;                 // rt  
-//                command_next[71:67] <= 5'b0;                // rd
-//                command_next[66:35] <= 32'b0;             // 立即数
-//                command_next[34:3]  <= 32'b0;            // 访存地址
-//                command_next[2:0]   <= 3'b011;          // 章
-//            end
-
-//            6'b011011: begin     //011011 BREAK                // 断点*
-//                command_next[87:82] <= 6'b011011;             // 操作码
-//                command_next[81:77] <= 5'b0;                  // rs
-//                command_next[76:72] <= 5'b0;                 // rt  
-//                command_next[71:67] <= 5'b0;                // rd
-//                command_next[66:35] <= 32'b0;             // 立即数
-//                command_next[34:3]  <= 32'b0;            // 访存地址
-//                command_next[2:0]   <= 3'b010;          // 章
-//            end
-
-//            6'b011100: begin     //011100 MFHI rd              // 从HI移动*
-//                command_next[87:82] <= 6'b011100;             // 操作码
-//                command_next[81:77] <= 5'b0;                  // rs
-//                command_next[76:72] <= 5'b0;                 // rt  
-//                command_next[71:67] <= command[15:11];     // rd
-//                command_next[66:35] <= 32'b0;             // 立即数
-//                command_next[34:3]  <= 32'b0;            // 访存地址
-//                command_next[2:0]   <= 3'b010;          // 章
-//            end
-
-//            6'b011101: begin     //011101 MFLO rd              // 从LO移动*
-//                command_next[87:82] <= 6'b011101;             // 操作码
-//                command_next[81:77] <= 5'b0;                  // rs
-//                command_next[76:72] <= 5'b0;                 // rt  
-//                command_next[71:67] <= command[15:11];     // rd
-//                command_next[66:35] <= 32'b0;             // 立即数
-//                command_next[34:3]  <= 32'b0;            // 访存地址
-//                command_next[2:0]   <= 3'b010;          // 章
-//            end
             
             //乘除法
             6'b011110: begin    //011110 MULT rs, rt, rd       // 乘法
@@ -462,6 +394,5 @@ module if_id (
             end
         endcase
     end
-
 
 endmodule 

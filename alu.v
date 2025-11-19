@@ -93,7 +93,9 @@ module alu (
         next_pc <= next_pc + 1;                     //pc+1
     end
 
+
     always @(*) begin    //执行的处理逻辑
+
         if (reset) begin                            //处理复位
             for (i = 7; i > -1; i = i - 1) begin
                 stamp[i] <= 3'b0;
@@ -408,7 +410,6 @@ module alu (
 
                         disable alu_ex;                                 //退出循环下一个周期再处理
                     end
-
                 endcase
             end
         end
@@ -591,6 +592,7 @@ module alu (
         end
         end
     end
+
 
 //    always @(*) begin                                       //处理写回
 //        stamp_in = 8'b00000000;       //势能清零

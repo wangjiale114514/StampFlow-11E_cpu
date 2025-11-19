@@ -303,11 +303,6 @@ module jump (
         end
         end
     end
-
-//    always @(*) begin             //写回阶段
-//    stamp_in = 8'b00000000;       //势能清零
-//    reg_in5_start = 1'b0;         //寄存器写入势能清零
-//    end
 endmodule
 
 //需要处理的命令种类
