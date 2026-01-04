@@ -1,0 +1,284 @@
+//接收内容为分支指令的提交，更改指令预测表
+//同时收集if阶段的地址和数据判断分支指令输出指令分割位置和pc偏移位置
+//如果分支预测失败对比后端传上来的数据不对就改变next的内容到分支预测正确的位置
+//剩下的清空流水线和回溯内容由jump写
+//暂未预测的情况下暂时默认不跳转，当遇到预测到的内容的时候再记录（除非无条件跳转）
+//为了尊重缓存行，在进行访存的时候如果发现指令地址对不齐8个偏移（64位）就地址-4（32位）取当前位的高位d%64
+//后面的分支判断写入等到jump单元写出来再写
+module bp(
+    input wire clk,
+    input wire reset,
+
+    //面向if阶段的输入
+    input wire [255:0] if_adderss,
+    input wire [255:0] if_data,
+
+    //面向if的输出
+    output reg [7:0] if_inst_out,     //Instruction Segmentation out
+    output reg [63:0] next_pc,        //out inst's next pc (偏移)
+    output reg [7:0] bp_if,           //分支预测结果标志，1为跳转，0为不跳转,8位表示哪条指令跳转
+
+    //面向后端获取分支结果
+    input wire [63:0] jump_inst,      //分支指令所在pc
+    input wire jump_inst_adderss,     //分支指令方位（1为跳转，0为不跳转）
+    input wire jump_start,            //分支指令输入势能
+    
+    //回溯
+//    input wire jump_kill,             //回溯势能（由jump单元接管next_pc的内容）
+//    input wire [63:0] jump_next_pc,   //回溯地址
+);
+    //定义循环变量
+    integer i;
+    integer d;
+    integer g;
+
+    //辨别分支指令指针
+    reg [7:0] branch_pc;
+
+    //zero
+    reg [63:0] zero;
+    assign zero = 64'b0;    //永远是0
+
+    //BHT
+    reg [63:0] bht_adderss [0:4095];        //存储内容的
+    reg [63:0] bht_branch_adderss [0:4095]; //分支跳转偏移位置
+    reg [1:0] bht [0:4095];                 //存储致信度
+    reg bht_start[0:4095];                  //BHT存储有效位
+    //BHT循环指针
+    reg [11:0] bht_pc;                      //循环指针
+
+    //指令译码
+    
+/*    //BHT查找
+    wire [63:0] bht_search_adderss;         //搜索用的地址
+    wire [63:0] bht_search_data;            //返回的跳转偏移量
+    wire [1:0] bht_search;                  //返回置信度
+    wire bht_search_hit;                    //命中标志
+    //cam查找逻辑
+    genvar k;
+    generate
+        for (k = 0; k < 4096; k = k + 1) begin
+            
+        end
+    endgenerate
+    */
+    
+    
+    //wire if_in
+    wire [32:0] if_in_data [0:7];           //分分支预测8条命令
+    assign if_in_data[0] = if_data[31:0];
+    assign if_in_data[1] = if_data[63:32];
+    assign if_in_data[2] = if_data[95:64];
+    assign if_in_data[3] = if_data[127:96];
+    assign if_in_data[4] = if_data[159:128];
+    assign if_in_data[5] = if_data[191:160];
+    assign if_in_data[6] = if_data[223:192];
+    assign if_in_data[7] = if_data[255:224];
+    wire [63:0] if_in_adderss [0:7];        //分支预测对应的pc值
+    assign if_in_adderss[0] = (if_adderss[63:0] + 0);
+    assign if_in_adderss[1] = (if_adderss[63:0] + 4);
+    assign if_in_adderss[2] = (if_adderss[63:0] + 8);
+    assign if_in_adderss[3] = (if_adderss[63:0] + 12);
+    assign if_in_adderss[4] = (if_adderss[63:0] + 16);
+    assign if_in_adderss[5] = (if_adderss[63:0] + 20);
+    assign if_in_adderss[6] = (if_adderss[63:0] + 24);
+    assign if_in_adderss[7] = (if_adderss[63:0] + 28);
+
+    //reset
+    always @(reset) begin
+        bht_pc <= 12'b0;
+        for (i = 0; i < 4096; i = i + 1) begin
+            bht_adderss <= 64'b0;
+            bht_start <= 1'b0;
+            bht <= 2'b0;
+        end
+        if_inst_out <= 8'b0;
+        next_pc <= 64'b0;
+        bp_if <= 8'b0;
+    end
+
+
+    //输入输出映射/查表(面向if)
+    reg [1:0] b_data;    //有分支指令类型标号（01是有条件分支，10是无条件分支）
+    reg [3:0] b_pc_out;  //分支指令所在的标签
+    reg not_next;        //指令非对齐标签（1为未对齐，低位指令切割输入应该为0）
+    reg b_next;          //这次译码后续有分支指令(1代表有)
+    reg b_ok;            //可以进行预测标识
+
+    reg jia_hit;         //命中标签（1为命中）
+    always @(*) begin    //查内容
+        b_ok = 1'b0;
+        b_next = 1'b0;
+        b_data = 2'b0;
+        bp_if = 8'b0;
+        jia_hit = 1'b0;
+        if (!not_next) begin                          //对齐的逻辑
+            for (d = 0; d < 8; d = d + 1) begin
+                if (if_in_data[d] == 7'b1100011) begin    //检测是否存在有条件分支
+                    if (b_data == 2'b0) begin             //检测到前面没有译码
+                        b_data = 2'b01;                   //有条件分支
+                        b_pc_out = 4'(d);                 //pc位置
+                        if (d%2) begin                    //判断是否为非对齐
+                            not_next = 1'b0;              //对称指令
+                        end
+                        else begin
+                            not_next = 1'b1;              //非对称指令
+                        end
+                    end
+                    else begin                            //否则就打上为0标签
+                        b_next = 1'b1;                    //后续有分支指令
+                    end
+                end
+                if (
+                    (if_in_data[d] == 7'b1101111)||    //无条件分支
+                    (if_in_data[d] == 7'b1100111)      //I型无条件分支
+                ) begin                                //如果是无条件跳转
+                    if (b_data == 2'b0) begin             //检测到前面没有译码
+                        b_data = 2'b10;                   //无条件分支
+                        b_pc_out = 4'(d);                 //pc位置
+                        if (d%2) begin                    //判断是否为非对齐
+                            not_next = 1'b0;              //对称指令
+                        end
+                        else begin
+                            not_next = 1'b1;              //非对称指令
+                        end
+                    end
+                    else begin                            //否则就打上为0标签
+                        b_next = 1'b1;                    //后续有分支指令
+                    end
+                end
+            end
+        end
+        else begin
+            for (d = 1; d < 8; d = d + 1) begin           //未对齐逻辑
+                if (if_in_data[d] == 7'b1100011) begin    //检测是否存在有条件分支
+                    if (b_data == 2'b0) begin             //检测到前面没有译码
+                        b_data = 2'b01;                   //有条件分支
+                        b_pc_out = 4'(d);                 //pc位置
+                        if (d%2) begin                    //判断是否为非对齐
+                            not_next = 1'b0;              //对称指令
+                        end
+                        else begin
+                            not_next = 1'b1;              //非对称指令
+                        end
+                    end
+                    else begin                            //否则就打上为0标签
+                        b_next = 1'b1;                    //后续有分支指令
+                    end
+                end
+                if (
+                    (if_in_data[d] == 7'b1101111)||    //无条件分支
+                    (if_in_data[d] == 7'b1100111)      //I型无条件分支
+                ) begin                                //如果是无条件跳转
+                    if (b_data == 2'b0) begin             //检测到前面没有译码
+                        b_data = 2'b10;                   //无条件分支
+                        b_pc_out = 4'(d);                 //pc位置
+                        if (d%2) begin                    //判断是否为非对齐
+                            not_next = 1'b0;              //对称指令
+                        end
+                        else begin
+                            not_next = 1'b1;              //非对称指令
+                        end
+                    end
+                    else begin                            //否则就打上为0标签
+                        b_next = 1'b1;                    //后续有分支指令
+                    end
+                end
+            end
+        end
+
+        //查输出
+        if (b_data == 2'b01) begin        //如果是有条件分支
+            for (i = 0; i < 4096; i = i + 1) begin
+                if (if_in_adderss[b_pc_out] == bht_adderss[i]) begin    //如果分支预测成功
+                    if (bht[1] == 1'b1) begin                           //如果是跳转
+                        next_pc = (bht_branch_adderss[i] + (b_pc_out * 4));//赋值跳转偏移
+                        jia_hit = 1'b1;                                 //预测成功
+                        bp_if[b_pc_out:not_next] = 'b1;                 //填写可进入id_fifo的命令
+                    end
+                    else begin                                          //如果不跳转
+                        if (b_next) begin                               //如果后续有分支指令
+                            if (b_pc_out % 2) begin                     //如果下一条指令对齐
+                                next_pc = 64'd8;                        //pc = 下一条命令
+                                not_next = 1'b0;                        //对齐
+                                bp_if[b_pc_out:not_next] = 'b1;         //填写可进入id_fifo的命令
+                            end
+                            else begin                                  //如果下一条指令不对齐
+                                next_pc = 64'd0;                        //pc = 下一条命令
+                                not_next = 1'b1;                        //不对齐
+                                bp_if[b_pc_out:not_next] = 'b1;         //填写可进入id_fifo的命令
+                            end
+                        end
+                        else begin    //如果后续没有分支指令
+                            if (b_pc_out % 2) begin                     //如果下一条指令对齐
+                                next_pc = 64'd32;                       //pc = 下一条命令
+                                not_next = 1'b0;                        //对齐
+                                bp_if[7:not_next] = 'b1;         //填写可进入id_fifo的命令
+                            end
+                            else begin                                  //如果下一条指令不对齐
+                                next_pc = 64'd32;                       //pc = 下一条命令
+                                not_next = 1'b1;                        //不对齐
+                                bp_if[7:not_next] = 'b1;         //填写可进入id_fifo的命令
+                            end
+                        end
+                    end
+                end
+            end
+            if (!jia_hit) begin          //如果没有查到预测条例
+                //存入分支预测地址
+                bht_adderss[bht_pc] = if_in_adderss[b_pc_out];  //存入分支指令地址
+                bht_branch_adderss[bht_pc] =                    //跳转偏移
+                bht[bht_pc] =                                   //置信度
+                bht_start[bht_pc] =                             //有效标识
+                bht_pc = bht_pc + 1;                            //指针前滚
+
+                //输出
+                if (b_next) begin                               //如果后续有分支指令
+                    if (b_pc_out % 2) begin                     //如果下一条指令对齐
+                        next_pc = 64'd8;                        //pc = 下一条命令
+                        not_next = 1'b0;                        //对齐
+                        bp_if[b_pc_out:not_next] = 'b1;         //填写可进入id_fifo的命令
+                    end
+                    else begin                                  //如果下一条指令不对齐
+                        next_pc = 64'd0;                        //pc = 下一条命令
+                        not_next = 1'b1;                        //不对齐
+                        bp_if[b_pc_out:not_next] = 'b1;         //填写可进入id_fifo的命令
+                    end
+                end
+                else begin    //如果后续没有分支指令
+                    if (b_pc_out % 2) begin                     //如果下一条指令对齐
+                        next_pc = 64'd32;                       //pc = 下一条命令
+                        not_next = 1'b0;                        //对齐
+                        bp_if[7:not_next] = 'b1;         //填写可进入id_fifo的命令
+                    end
+                    else begin                                  //如果下一条指令不对齐
+                        next_pc = 64'd32;                       //pc = 下一条命令
+                        not_next = 1'b1;                        //不对齐
+                        bp_if[7:not_next] = 'b1;         //填写可进入id_fifo的命令
+                    end
+                end
+
+
+            end
+        end
+    end
+
+
+/*for (i = 0; i < 4096; i = i + 1) begin
+                if ((if_in_data[d][6:0] == 7'b1100011)&&    //search data
+                    (if_in_adderss[d] == bht_adderss[i])
+                ) begin
+                    miss_bit = 1'b0;    //not miss
+                    if (bht[1] == 1'b0) begin               //填写nextpc和输出指令切割
+                        next_pc <= 64'b0;
+                    end
+                    i = 5100;    //stop loop
+                    d = 8;
+                end
+            end
+*/
+    //1100011    有条件分支
+    //1101111    无条件分支
+    //1100111    I型无条件分支
+
+endmodule
